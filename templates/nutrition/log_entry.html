@@ -1,20 +1,20 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if is_edit %}Edit Log{% else %}New Log{% endif %} - FitLife{% endblock %}
+{% block title %}{% if is_edit %}Edit Daily Log{% else %}Log Nutrition & Exercise{% endif %} - FitLife{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-sm my-6">
     <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
         <div>
-            <h2 class="text-2xl font-black text-slate-900">{% if is_edit %}Edit Daily Nutrition{% else %}Log Daily Nutrition{% endif %}</h2>
-            <p class="text-slate-500 text-sm mt-1">Record your intake details below.</p>
+            <h2 class="text-2xl font-black text-slate-900">{% if is_edit %}Edit Daily Log{% else %}Daily Nutrition & Activity Log{% endif %}</h2>
+            <p class="text-slate-500 text-sm mt-1">Log your food intake and calories burned to calculate your daily deficit and fat loss.</p>
         </div>
         <a href="{% url 'dashboard:index' %}" class="text-slate-400 hover:text-slate-600 transition">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
         </a>
     </div>
 
-    <form method="POST" class="space-y-6">
+    <form method="POST" class="space-y-6" id="nutrition-log-form">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
@@ -32,12 +32,19 @@
             {% if form.date.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.date.errors.0 }}</p>{% endif %}
         </div>
 
-        <!-- Mandatory Macros Grid -->
-        <div class="bg-emerald-50/30 p-6 rounded-2xl border border-emerald-100/50 space-y-4">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-800">Required Metrics</h3>
+        <!-- Section 1: Food Intake (Calories Consumed & Protein) -->
+        <div class="bg-emerald-50/40 p-6 rounded-2xl border border-emerald-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-emerald-100 pb-2">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-900 flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <span>1. Food Intake (Consumed)</span>
+                </h3>
+                <span class="text-xs text-emerald-700 font-semibold">Required</span>
+            </div>
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Calories (kcal) *</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Calories Consumed (kcal) *</label>
                     {{ form.calories }}
                     {% if form.calories.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.calories.errors.0 }}</p>{% endif %}
                 </div>
@@ -49,9 +56,62 @@
             </div>
         </div>
 
-        <!-- Optional Macros Grid -->
+        <!-- Section 2: Physical Activity (Calories Burned) -->
+        <div class="bg-red-50/40 p-6 rounded-2xl border border-red-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-red-100 pb-2">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-red-900 flex items-center space-x-2">
+                    <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path></svg>
+                    <span>2. Physical Activity (Calories Burned)</span>
+                </h3>
+                <span class="text-xs text-red-700 font-semibold">Active Workout</span>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Calories Burned (kcal)</label>
+                {{ form.calories_burned }}
+                <p class="text-xs text-slate-400 mt-1">Enter total active calories burned from gym, running, walking, or sports today.</p>
+                {% if form.calories_burned.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.calories_burned.errors.0 }}</p>{% endif %}
+            </div>
+        </div>
+
+        <!-- Section 3: Real-Time Deficit & Fat Loss Calculator Card -->
+        <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-6 rounded-2xl border border-slate-700 space-y-4 shadow-lg">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    <span>Live Deficit & Fat Loss Calculation</span>
+                </span>
+                <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-medium">Daily Target: {{ calorie_target }} kcal</span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                <div class="bg-slate-800/80 p-3 rounded-xl">
+                    <span class="text-[11px] text-slate-400 font-bold uppercase block">Eaten</span>
+                    <span class="text-lg font-black text-white" id="live_eaten">0 kcal</span>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-xl">
+                    <span class="text-[11px] text-red-400 font-bold uppercase block">Burned</span>
+                    <span class="text-lg font-black text-red-400" id="live_burned">0 kcal</span>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-xl">
+                    <span class="text-[11px] text-slate-400 font-bold uppercase block">Net Balance</span>
+                    <span class="text-lg font-black text-emerald-400" id="live_net">0 kcal</span>
+                </div>
+                <div class="bg-slate-800/80 p-3 rounded-xl">
+                    <span class="text-[11px] text-amber-400 font-bold uppercase block">Est. Fat Impact</span>
+                    <span class="text-lg font-black text-amber-300" id="live_fat">0g</span>
+                </div>
+            </div>
+
+            <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                <span id="live_status_text" class="text-emerald-400 font-semibold">🟢 In Caloric Deficit</span>
+                <span>Formula: 1 kg Fat = 7,700 kcal</span>
+            </div>
+        </div>
+
+        <!-- Section 4: Optional Macros Grid -->
         <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4">
-            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Optional Metrics</h3>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">3. Other Optional Macros</h3>
             <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Carbs (g)</label>
@@ -60,10 +120,6 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Fat (g)</label>
                     {{ form.fat }}
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Calories Burned (kcal)</label>
-                    {{ form.calories_burned }}
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Fiber (g)</label>
@@ -112,4 +168,74 @@
         </div>
     </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const userCalorieTarget = {{ calorie_target|default:2000 }};
+
+    function recalculateLiveDeficit() {
+        const eatenInput = document.getElementById('id_calories');
+        const burnedInput = document.getElementById('id_calories_burned');
+
+        const eaten = parseFloat(eatenInput ? eatenInput.value : 0) || 0;
+        const burned = parseFloat(burnedInput ? burnedInput.value : 0) || 0;
+
+        // Net Balance = Eaten - (Target + Burned)
+        const net = eaten - (userCalorieTarget + burned);
+        const absNet = Math.abs(net);
+
+        // Fat grams = Deficit / 7.7
+        const fatGrams = (absNet / 7.7).toFixed(1);
+        let fatStr = fatGrams + 'g';
+        if (parseFloat(fatGrams) >= 1000) {
+            fatStr = (parseFloat(fatGrams) / 1000).toFixed(2) + ' kg';
+        }
+
+        // Update UI
+        document.getElementById('live_eaten').innerText = eaten + ' kcal';
+        document.getElementById('live_burned').innerText = burned + ' kcal';
+
+        const liveNetEl = document.getElementById('live_net');
+        const liveFatEl = document.getElementById('live_fat');
+        const liveStatusEl = document.getElementById('live_status_text');
+
+        if (net < 0) {
+            liveNetEl.innerText = '-' + absNet + ' kcal';
+            liveNetEl.className = "text-lg font-black text-emerald-400";
+            liveFatEl.innerText = '-' + fatStr + ' fat';
+            liveFatEl.className = "text-lg font-black text-emerald-300";
+            liveStatusEl.innerText = '🟢 In Caloric Deficit (Fat Loss: ~' + fatStr + ')';
+            liveStatusEl.className = 'text-emerald-400 font-semibold';
+        } else if (net > 0) {
+            liveNetEl.innerText = '+' + net + ' kcal';
+            liveNetEl.className = "text-lg font-black text-orange-400";
+            liveFatEl.innerText = '+' + fatStr + ' fat';
+            liveFatEl.className = "text-lg font-black text-orange-300";
+            liveStatusEl.innerText = '🔴 In Caloric Surplus (Fat Surplus: ~' + fatStr + ')';
+            liveStatusEl.className = 'text-orange-400 font-semibold';
+        } else {
+            liveNetEl.innerText = '0 kcal';
+            liveNetEl.className = "text-lg font-black text-slate-300";
+            liveFatEl.innerText = '0g';
+            liveFatEl.className = "text-lg font-black text-slate-300";
+            liveStatusEl.innerText = '⚪ Exactly Balanced (No Surplus/Deficit)';
+            liveStatusEl.className = 'text-slate-300 font-semibold';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const eatenInput = document.getElementById('id_calories');
+        const burnedInput = document.getElementById('id_calories_burned');
+
+        if (eatenInput) {
+            eatenInput.addEventListener('input', recalculateLiveDeficit);
+        }
+        if (burnedInput) {
+            burnedInput.addEventListener('input', recalculateLiveDeficit);
+        }
+
+        recalculateLiveDeficit();
+    });
+</script>
 {% endblock %}

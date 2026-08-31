@@ -10,6 +10,7 @@ import calendar as pycalendar
 from nutrition.models import DailyNutritionEntry
 from nutrition.forms import DailyNutritionForm
 from nutrition.services import get_user_local_date
+from accounts.services import calculate_daily_targets
 
 @login_required
 def log_entry_view(request):
@@ -26,6 +27,10 @@ def log_entry_view(request):
         
     # Check if entry already exists
     entry = DailyNutritionEntry.objects.filter(user=user, date=target_date).first()
+    
+    # Get user's calorie target for live deficit preview
+    targets = calculate_daily_targets(user.profile)
+    calorie_target = user.profile.daily_calorie_target_override or targets['calories']
     
     if request.method == 'POST':
         form = DailyNutritionForm(request.POST, instance=entry)
@@ -53,6 +58,7 @@ def log_entry_view(request):
     return render(request, 'nutrition/log_entry.html', {
         'form': form,
         'target_date': target_date,
+        'calorie_target': calorie_target,
         'is_edit': entry is not None
     })
 
@@ -71,11 +77,29 @@ def delete_entry_view(request, pk):
 
 @login_required
 def history_view(request):
-    entries_list = DailyNutritionEntry.objects.filter(user=request.user).order_by('-date')
+    user = request.user
+    targets = calculate_daily_targets(user.profile)
+    user_target = user.profile.daily_calorie_target_override or targets['calories']
+
+    entries_list = DailyNutritionEntry.objects.filter(user=user).order_by('-date')
     paginator = Paginator(entries_list, 10) # 10 logs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'nutrition/history.html', {'page_obj': page_obj})
+    
+    # Calculate daily deficit & fat metrics for each day in history
+    for entry in page_obj:
+        net = entry.calories - (user_target + entry.calories_burned)
+        fat_g = abs(net) / 7.7
+        entry.net_deficit = net
+        entry.abs_net = abs(net)
+        entry.is_deficit = net < 0
+        entry.is_surplus = net > 0
+        entry.fat_str = f"{round(fat_g/1000, 2)} kg" if fat_g >= 1000 else f"{int(round(fat_g))}g"
+
+    return render(request, 'nutrition/history.html', {
+        'page_obj': page_obj,
+        'user_target': user_target
+    })
 
 @login_required
 def calendar_view(request):
