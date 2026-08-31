@@ -58,6 +58,7 @@ def index_view(request):
     }
     
     remaining_calories = max(0, calorie_target - consumed['calories'])
+    remaining_protein = max(0, protein_target - consumed['protein'])
     
     # Calorie target status
     calorie_diff = consumed['calories'] - calorie_target
@@ -84,6 +85,7 @@ def index_view(request):
         'fat_target': fat_target,
         'consumed': consumed,
         'remaining_calories': remaining_calories,
+        'remaining_protein': remaining_protein,
         'current_weight': current_weight,
         'weight_unit': weight_unit,
         'streak': streak_stats['current_streak'],
