@@ -58,7 +58,7 @@ def index_view(request):
         'calories_burned': entry.calories_burned if entry else 0,
     }
     
-    remaining_calories = max(0, calorie_target - consumed['calories'])
+    remaining_calories = max(0, (calorie_target + consumed['calories_burned']) - consumed['calories'])
     remaining_protein = max(0, protein_target - consumed['protein'])
     
     # Today Caloric balance = consumed - (target + burned)
@@ -124,6 +124,7 @@ def index_view(request):
     context = {
         'today': today,
         'calorie_target': calorie_target,
+        'calorie_target_with_burned': calorie_target + consumed['calories_burned'],
         'protein_target': protein_target,
         'carbs_target': carbs_target,
         'fat_target': fat_target,
