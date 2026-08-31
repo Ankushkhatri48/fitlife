@@ -37,7 +37,7 @@
                     <tr class="hover:bg-slate-50/50 transition">
                         <td class="px-6 py-4 font-semibold text-slate-900">{{ entry.date|date:"M d, Y" }}</td>
                         <td class="px-6 py-4 text-emerald-600 font-bold">{{ entry.calories }} kcal</td>
-                        <td class="px-6 py-4 text-red-500 font-bold">{% if entry.calories_burned %}-{{ entry.calories_burned }} kcal{% else %}0 kcal{% endif %}</td>
+                        <td class="px-6 py-4 text-red-500 font-bold">{% if entry.calories_burned %}-{{ entry.calories_burned }} kcal{% else %}{{ user_target }} kcal (Base){% endif %}</td>
                         <td class="px-6 py-4 text-blue-600 font-semibold">{{ entry.protein }}g</td>
                         <td class="px-6 py-4">
                             {% if entry.is_deficit %}

@@ -88,12 +88,14 @@ def history_view(request):
     
     # Calculate daily deficit & fat metrics for each day in history
     for entry in page_obj:
-        net = entry.calories - (user_target + entry.calories_burned)
+        effective_burned = entry.calories_burned if entry.calories_burned > 0 else user_target
+        net = entry.calories - effective_burned
         fat_g = abs(net) / 7.7
         entry.net_deficit = net
         entry.abs_net = abs(net)
         entry.is_deficit = net < 0
         entry.is_surplus = net > 0
+        entry.effective_burned = effective_burned
         entry.fat_str = f"{round(fat_g/1000, 2)} kg" if fat_g >= 1000 else f"{int(round(fat_g))}g"
 
     return render(request, 'nutrition/history.html', {

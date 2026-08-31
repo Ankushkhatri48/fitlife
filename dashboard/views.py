@@ -58,11 +58,12 @@ def index_view(request):
         'calories_burned': entry.calories_burned if entry else 0,
     }
     
-    remaining_calories = max(0, (calorie_target + consumed['calories_burned']) - consumed['calories'])
+    today_burned = consumed['calories_burned'] if consumed['calories_burned'] > 0 else calorie_target
+    remaining_calories = max(0, today_burned - consumed['calories'])
     remaining_protein = max(0, protein_target - consumed['protein'])
     
-    # Today Caloric balance = consumed - (target + burned)
-    today_net = consumed['calories'] - (calorie_target + consumed['calories_burned'])
+    # Today Caloric balance = Eaten - Burned (or Target if burned is 0)
+    today_net = consumed['calories'] - today_burned
     
     # Weekly stats calculation (Last 7 Days)
     weekly_entries = DailyNutritionEntry.objects.filter(
@@ -72,16 +73,15 @@ def index_view(request):
     weekly_entries_by_date = {e.date: e for e in weekly_entries}
     
     weekly_consumed = 0
-    weekly_burned = 0
-    weekly_target = 0
+    weekly_burned_total = 0
     for i in range(7):
         d = today - timedelta(days=i)
         entry_d = weekly_entries_by_date.get(d)
         weekly_consumed += entry_d.calories if entry_d else 0
-        weekly_burned += entry_d.calories_burned if entry_d else 0
-        weekly_target += calorie_target
+        burned_d = entry_d.calories_burned if (entry_d and entry_d.calories_burned > 0) else calorie_target
+        weekly_burned_total += burned_d
         
-    weekly_net = weekly_consumed - (weekly_target + weekly_burned)
+    weekly_net = weekly_consumed - weekly_burned_total
     
     # Monthly stats calculation (Last 30 Days)
     monthly_entries = DailyNutritionEntry.objects.filter(
@@ -91,16 +91,15 @@ def index_view(request):
     monthly_entries_by_date = {e.date: e for e in monthly_entries}
     
     monthly_consumed = 0
-    monthly_burned = 0
-    monthly_target = 0
+    monthly_burned_total = 0
     for i in range(30):
         d = today - timedelta(days=i)
         entry_d = monthly_entries_by_date.get(d)
         monthly_consumed += entry_d.calories if entry_d else 0
-        monthly_burned += entry_d.calories_burned if entry_d else 0
-        monthly_target += calorie_target
+        burned_d = entry_d.calories_burned if (entry_d and entry_d.calories_burned > 0) else calorie_target
+        monthly_burned_total += burned_d
         
-    monthly_net = monthly_consumed - (monthly_target + monthly_burned)
+    monthly_net = monthly_consumed - monthly_burned_total
     
     # Format stats helper
     def format_balance(net_val):

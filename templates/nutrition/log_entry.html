@@ -181,11 +181,13 @@
         const eaten = parseFloat(eatenInput ? eatenInput.value : 0) || 0;
         const burned = parseFloat(burnedInput ? burnedInput.value : 0) || 0;
 
-        // Net Balance = Eaten - (Target + Burned)
-        const net = eaten - (userCalorieTarget + burned);
+        // If user entered Burned calories (>0), compare Eaten directly against Burned.
+        // Otherwise, compare against their daily base target.
+        const totalBurned = burned > 0 ? burned : userCalorieTarget;
+        const net = eaten - totalBurned;
         const absNet = Math.abs(net);
 
-        // Fat grams = Deficit / 7.7
+        // Fat grams = Deficit / 7.7 (since 1 kg fat = 7700 kcal -> 1g = 7.7 kcal)
         const fatGrams = (absNet / 7.7).toFixed(1);
         let fatStr = fatGrams + 'g';
         if (parseFloat(fatGrams) >= 1000) {
@@ -194,7 +196,7 @@
 
         // Update UI
         document.getElementById('live_eaten').innerText = eaten + ' kcal';
-        document.getElementById('live_burned').innerText = burned + ' kcal';
+        document.getElementById('live_burned').innerText = (burned > 0 ? burned : userCalorieTarget) + ' kcal' + (burned === 0 ? ' (Target)' : '');
 
         const liveNetEl = document.getElementById('live_net');
         const liveFatEl = document.getElementById('live_fat');
