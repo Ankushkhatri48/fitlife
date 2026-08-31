@@ -116,7 +116,7 @@
                     Completed: {{ protein_percent }}%
                 </span>
                 <span class="text-slate-500 font-medium">
-                    Remaining: <strong class="text-slate-900">{% if consumed.protein < protein_target %}{{ protein_target|filesizeformat|add:0|default_if_none:0 }}{{ protein_target|add:-consumed.protein }}g{% else %}Goal Met!{% endif %}</strong>
+                    Remaining: <strong class="text-slate-900">{% if consumed.protein < protein_target %}{{ protein_target|add:-consumed.protein }}g{% else %}Goal Met!{% endif %}</strong>
                 </span>
             </div>
         </div>
