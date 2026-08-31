@@ -31,6 +31,11 @@ class DailyNutritionEntry(models.Model):
         validators=[MinValueValidator(0)],
         help_text="Fat (grams)"
     )
+    calories_burned = models.PositiveIntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
+        help_text="Calories burned (kcal)"
+    )
     fiber = models.PositiveIntegerField(
         default=0,
         validators=[MinValueValidator(0)],

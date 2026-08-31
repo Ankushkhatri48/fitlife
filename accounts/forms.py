@@ -73,7 +73,7 @@ class UserProfileForm(forms.ModelForm):
         model = UserProfile
         fields = [
             'name', 'age', 'gender', 'weight', 'height', 'weight_unit', 
-            'height_unit', 'goal', 'activity_level', 
+            'height_unit', 'goal', 
             'daily_calorie_target_override', 'protein_target_override',
             'carbs_target_override', 'fat_target_override', 'timezone'
         ]
@@ -112,9 +112,6 @@ class UserProfileForm(forms.ModelForm):
                 'onchange': 'toggleHeightInputs()'
             }),
             'goal': forms.Select(attrs={
-                'class': 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500'
-            }),
-            'activity_level': forms.Select(attrs={
                 'class': 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500'
             }),
             'daily_calorie_target_override': forms.NumberInput(attrs={

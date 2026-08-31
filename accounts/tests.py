@@ -46,11 +46,11 @@ class AccountsTestCase(TestCase):
         profile.save()
         
         # BMR Male = 10 * 80 + 6.25 * 180 - 5 * 25 + 5 = 800 + 1125 - 125 + 5 = 1805
-        # TDEE = 1805 * 1.55 = 2797.75 ≈ 2798
+        # TDEE = 1805 (since activity multiplier is removed)
         targets = calculate_daily_targets(profile)
         self.assertEqual(targets['bmr'], 1805)
-        self.assertEqual(targets['tdee'], 2798)
-        self.assertEqual(targets['calories'], 2798)
+        self.assertEqual(targets['tdee'], 1805)
+        self.assertEqual(targets['calories'], 1805)
         
     def test_daily_calorie_target_estimation_female(self):
         """Test Mifflin-St Jeor BMR for Female (Lose Weight)."""
@@ -61,13 +61,13 @@ class AccountsTestCase(TestCase):
         profile.weight_unit = 'kg'
         profile.height = 165
         profile.height_unit = 'cm'
-        profile.activity_level = 'Sedentary'
         profile.goal = 'Lose weight'
         profile.save()
         
         # BMR Female = 10 * 60 + 6.25 * 165 - 5 * 30 - 161 = 600 + 1031.25 - 150 - 161 = 1320.25
-        # TDEE = 1320.25 * 1.2 = 1584.3
-        # Deficit calories = 1584.3 - 500 = 1084.3 -> capped at 1200 as sensible limit
+        # TDEE = 1320
+        # Deficit calories = 1320.25 - 500 = 820 -> capped at 1200 as sensible limit
         targets = calculate_daily_targets(profile)
         self.assertEqual(targets['bmr'], 1320)
+        self.assertEqual(targets['tdee'], 1320)
         self.assertEqual(targets['calories'], 1200) # checks capping logic

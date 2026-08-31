@@ -55,27 +55,71 @@ def index_view(request):
         'fat': entry.fat if entry else 0,
         'caffeine': entry.caffeine if entry else 0,
         'sugar': entry.sugar if entry else 0,
+        'calories_burned': entry.calories_burned if entry else 0,
     }
     
     remaining_calories = max(0, calorie_target - consumed['calories'])
     remaining_protein = max(0, protein_target - consumed['protein'])
     
-    # Calorie target status
-    calorie_diff = consumed['calories'] - calorie_target
-    if abs(calorie_diff) <= 100:
-        status = 'target'
-        status_label = '🟢 Within calorie target'
-    elif calorie_diff > 100:
-        status = 'surplus'
-        status_label = '🔴 Above calorie target'
-    else:
-        status = 'deficit'
-        status_label = '🟡 Below target'
+    # Today Caloric balance = consumed - (target + burned)
+    today_net = consumed['calories'] - (calorie_target + consumed['calories_burned'])
+    
+    # Weekly stats calculation (Last 7 Days)
+    weekly_entries = DailyNutritionEntry.objects.filter(
+        user=user,
+        date__range=[today - timedelta(days=6), today]
+    )
+    weekly_entries_by_date = {e.date: e for e in weekly_entries}
+    
+    weekly_consumed = 0
+    weekly_burned = 0
+    weekly_target = 0
+    for i in range(7):
+        d = today - timedelta(days=i)
+        entry_d = weekly_entries_by_date.get(d)
+        weekly_consumed += entry_d.calories if entry_d else 0
+        weekly_burned += entry_d.calories_burned if entry_d else 0
+        weekly_target += calorie_target
         
-    # Fat equivalent calculation: 7700 kcal = 1 kg fat
-    # estimated_fat_equivalent_kg = calorie_difference / 7700
-    fat_eq = Decimal(str(calorie_diff)) / Decimal('7700')
-    fat_eq = round(fat_eq, 2)
+    weekly_net = weekly_consumed - (weekly_target + weekly_burned)
+    
+    # Monthly stats calculation (Last 30 Days)
+    monthly_entries = DailyNutritionEntry.objects.filter(
+        user=user,
+        date__range=[today - timedelta(days=29), today]
+    )
+    monthly_entries_by_date = {e.date: e for e in monthly_entries}
+    
+    monthly_consumed = 0
+    monthly_burned = 0
+    monthly_target = 0
+    for i in range(30):
+        d = today - timedelta(days=i)
+        entry_d = monthly_entries_by_date.get(d)
+        monthly_consumed += entry_d.calories if entry_d else 0
+        monthly_burned += entry_d.calories_burned if entry_d else 0
+        monthly_target += calorie_target
+        
+    monthly_net = monthly_consumed - (monthly_target + monthly_burned)
+    
+    # Format stats helper
+    def format_balance(net_val):
+        fat_g = abs(net_val) / 7.7
+        if fat_g >= 1000:
+            fat_str = f"{round(fat_g / 1000, 2)} kg"
+        else:
+            fat_str = f"{int(round(fat_g))}g"
+            
+        return {
+            'net': net_val,
+            'abs_net': abs(net_val),
+            'status': 'deficit' if net_val < 0 else ('surplus' if net_val > 0 else 'target'),
+            'fat_str': fat_str
+        }
+        
+    today_stats = format_balance(today_net)
+    weekly_stats = format_balance(weekly_net)
+    monthly_stats = format_balance(monthly_net)
     
     context = {
         'today': today,
@@ -91,10 +135,9 @@ def index_view(request):
         'streak': streak_stats['current_streak'],
         'streak_stats': streak_stats,
         'goal': profile.goal,
-        'status_label': status_label,
-        'status': status,
-        'fat_eq': fat_eq,
-        'abs_fat_eq': abs(fat_eq),
+        'today_stats': today_stats,
+        'weekly_stats': weekly_stats,
+        'monthly_stats': monthly_stats,
         'entry': entry,
     }
     return render(request, 'dashboard/index.html', context)

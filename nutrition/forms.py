@@ -6,9 +6,14 @@ class DailyNutritionForm(forms.ModelForm):
         model = DailyNutritionEntry
         fields = [
             'date', 'calories', 'protein', 'carbohydrates', 
-            'fat', 'fiber', 'sugar', 'sodium', 'water', 'notes'
+            'fat', 'calories_burned', 'fiber', 'sugar', 'sodium', 'water', 'notes'
         ]
         widgets = {
+            'calories_burned': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500',
+                'placeholder': 'kcal (optional)',
+                'min': '0'
+            }),
             'date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500'

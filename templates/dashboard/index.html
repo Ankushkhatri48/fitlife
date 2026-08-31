@@ -67,11 +67,11 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-xl font-bold text-slate-800">Calories</h3>
-                    <p class="text-sm text-slate-400">Total energy consumed today</p>
+                    <p class="text-sm text-slate-400 font-medium">Daily Target: {{ calorie_target }} kcal</p>
                 </div>
                 <div class="text-right">
                     <span class="text-2xl font-black text-slate-900">{{ consumed.calories }}</span>
-                    <span class="text-slate-400 font-bold">/ {{ calorie_target }} kcal</span>
+                    <span class="text-slate-400 font-bold">kcal consumed</span>
                 </div>
             </div>
 
@@ -82,12 +82,30 @@
                      style="width: {% if calorie_percent|add:0 > 100 %}100%{% else %}{{ calorie_percent }}%{% endif %};"></div>
             </div>
 
-            <div class="flex justify-between items-center text-sm pt-2">
-                <span class="font-semibold {{ status }} text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs">
-                    {{ status_label }}
+            <!-- Math breakdowns: Target vs Burned vs Net -->
+            <div class="grid grid-cols-3 gap-2 pt-2 text-center border-t border-slate-100">
+                <div class="bg-slate-50 p-2.5 rounded-xl">
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Target</span>
+                    <span class="text-sm font-bold text-slate-700">{{ calorie_target }} kcal</span>
+                </div>
+                <div class="bg-red-50/50 p-2.5 rounded-xl">
+                    <span class="text-[10px] text-red-500 font-bold uppercase tracking-wider block">Burned</span>
+                    <span class="text-sm font-bold text-red-700">- {{ consumed.calories_burned }} kcal</span>
+                </div>
+                <div class="{% if today_stats.net < 0 %}bg-emerald-50/50{% else %}bg-orange-50/50{% endif %} p-2.5 rounded-xl">
+                    <span class="text-[10px] {% if today_stats.net < 0 %}text-emerald-500{% else %}text-orange-500{% endif %} font-bold uppercase tracking-wider block">Net Balance</span>
+                    <span class="text-sm font-bold {% if today_stats.net < 0 %}text-emerald-700{% else %}text-orange-700{% endif %}">
+                        {% if today_stats.net < 0 %}-{{ today_stats.abs_net }}{% else %}+{{ today_stats.net }}{% endif %} kcal
+                    </span>
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center text-xs pt-1">
+                <span class="font-semibold text-xs py-0.5 px-2.5 rounded-full {% if today_stats.net < 0 %}bg-emerald-100 text-emerald-800{% else %}bg-orange-100 text-orange-800{% endif %}">
+                    {% if today_stats.net < 0 %}🟢 In Caloric Deficit{% else %}🔴 In Caloric Surplus{% endif %}
                 </span>
                 <span class="text-slate-500 font-medium">
-                    Remaining: <strong class="text-slate-900">{{ remaining_calories }} kcal</strong>
+                    Remaining Target: <strong class="text-slate-900">{{ remaining_calories }} kcal</strong>
                 </span>
             </div>
         </div>
@@ -175,31 +193,73 @@
 
     <!-- Calculations (Fat equivalent & notes) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Fat estimation -->
+        <!-- Fat estimation Card -->
         <div class="lg:col-span-1 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl shadow-slate-200">
             <div>
                 <h3 class="text-lg font-bold text-white flex items-center space-x-2">
                     <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>Estimated Fat Equivalent</span>
+                    <span>Fat Change Estimator</span>
                 </h3>
-                <p class="text-xs text-slate-400 mt-1">Based on daily caloric balance</p>
+                <p class="text-xs text-slate-400 mt-1">Based on net calorie deficit/surplus</p>
             </div>
 
-            <div class="py-4 border-t border-b border-slate-700">
-                {% if fat_eq < 0 %}
-                <p class="text-3xl font-extrabold text-emerald-400">≈ {{ abs_fat_eq }} kg</p>
-                <p class="text-xs text-slate-300 mt-2 font-medium">Estimated equivalent fat loss from calorie deficit today.</p>
-                {% elif fat_eq > 0 %}
-                <p class="text-3xl font-extrabold text-orange-400">≈ {{ fat_eq }} kg</p>
-                <p class="text-xs text-slate-300 mt-2 font-medium">Estimated equivalent fat surplus from calorie surplus today.</p>
+            <!-- Tab Buttons -->
+            <div class="grid grid-cols-3 gap-1 bg-slate-800/80 p-1 rounded-xl text-xs font-semibold">
+                <button onclick="switchTab('today')" id="btn-today" class="py-2 px-1 rounded-lg text-center transition bg-emerald-500 text-white">Today</button>
+                <button onclick="switchTab('weekly')" id="btn-weekly" class="py-2 px-1 rounded-lg text-center transition text-slate-400 hover:text-white">Weekly</button>
+                <button onclick="switchTab('monthly')" id="btn-monthly" class="py-2 px-1 rounded-lg text-center transition text-slate-400 hover:text-white">Monthly</button>
+            </div>
+
+            <!-- Tab Content: Today -->
+            <div id="tab-today" class="py-2 border-t border-b border-slate-700/60">
+                {% if today_stats.net < 0 %}
+                <p class="text-3xl font-extrabold text-emerald-400">≈ {{ today_stats.fat_str }}</p>
+                <p class="text-xs text-emerald-300 mt-2 font-medium">Deficit: {{ today_stats.abs_net }} kcal</p>
+                <p class="text-[11px] text-slate-400 mt-1">Estimated fat loss from deficit today.</p>
+                {% elif today_stats.net > 0 %}
+                <p class="text-3xl font-extrabold text-orange-400">≈ {{ today_stats.fat_str }}</p>
+                <p class="text-xs text-orange-300 mt-2 font-medium">Surplus: {{ today_stats.net }} kcal</p>
+                <p class="text-[11px] text-slate-400 mt-1">Estimated fat gain from surplus today.</p>
                 {% else %}
-                <p class="text-3xl font-extrabold text-slate-300">0.0 kg</p>
-                <p class="text-xs text-slate-300 mt-2 font-medium">You are exactly on par with your calorie targets.</p>
+                <p class="text-3xl font-extrabold text-slate-300">0g</p>
+                <p class="text-xs text-slate-300 mt-2 font-medium">Energy balance is fully even.</p>
+                {% endif %}
+            </div>
+
+            <!-- Tab Content: Weekly -->
+            <div id="tab-weekly" class="py-2 border-t border-b border-slate-700/60 hidden">
+                {% if weekly_stats.net < 0 %}
+                <p class="text-3xl font-extrabold text-emerald-400">≈ {{ weekly_stats.fat_str }}</p>
+                <p class="text-xs text-emerald-300 mt-2 font-medium">Accumulated Deficit: {{ weekly_stats.abs_net }} kcal</p>
+                <p class="text-[11px] text-slate-400 mt-1">Estimated fat loss over the last 7 days.</p>
+                {% elif weekly_stats.net > 0 %}
+                <p class="text-3xl font-extrabold text-orange-400">≈ {{ weekly_stats.fat_str }}</p>
+                <p class="text-xs text-orange-300 mt-2 font-medium">Accumulated Surplus: {{ weekly_stats.net }} kcal</p>
+                <p class="text-[11px] text-slate-400 mt-1">Estimated fat gain over the last 7 days.</p>
+                {% else %}
+                <p class="text-3xl font-extrabold text-slate-300">0g</p>
+                <p class="text-xs text-slate-300 mt-2 font-medium">Weekly energy balance is fully even.</p>
+                {% endif %}
+            </div>
+
+            <!-- Tab Content: Monthly -->
+            <div id="tab-monthly" class="py-2 border-t border-b border-slate-700/60 hidden">
+                {% if monthly_stats.net < 0 %}
+                <p class="text-3xl font-extrabold text-emerald-400">≈ {{ monthly_stats.fat_str }}</p>
+                <p class="text-xs text-emerald-300 mt-2 font-medium">Accumulated Deficit: {{ monthly_stats.abs_net }} kcal</p>
+                <p class="text-[11px] text-slate-400 mt-1">Estimated fat loss over the last 30 days.</p>
+                {% elif monthly_stats.net > 0 %}
+                <p class="text-3xl font-extrabold text-orange-400">≈ {{ monthly_stats.fat_str }}</p>
+                <p class="text-xs text-orange-300 mt-2 font-medium">Accumulated Surplus: {{ monthly_stats.net }} kcal</p>
+                <p class="text-[11px] text-slate-400 mt-1">Estimated fat gain over the last 30 days.</p>
+                {% else %}
+                <p class="text-3xl font-extrabold text-slate-300">0g</p>
+                <p class="text-xs text-slate-300 mt-2 font-medium">Monthly energy balance is fully even.</p>
                 {% endif %}
             </div>
 
             <div class="text-[10px] text-slate-500 leading-normal">
-                💡 Note: 1 kg body fat is approximately 7,700 kcal. This is an estimate of energy balance and does not predict actual scale weight changes, which fluctuate due to water weight, glycogen storage, sodium, and metabolic activity.
+                💡 Formula: 1 kg body fat = 7,700 kcal. Deficits or surpluses are divided by 7.7 to calculate grams/kilograms of fat difference.
             </div>
         </div>
 
@@ -228,4 +288,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(timeframe) {
+        // Hide all tabs
+        document.getElementById('tab-today').classList.add('hidden');
+        document.getElementById('tab-weekly').classList.add('hidden');
+        document.getElementById('tab-monthly').classList.add('hidden');
+        
+        // Remove active class from buttons
+        document.getElementById('btn-today').className = "py-2 px-1 rounded-lg text-center transition text-slate-400 hover:text-white";
+        document.getElementById('btn-weekly').className = "py-2 px-1 rounded-lg text-center transition text-slate-400 hover:text-white";
+        document.getElementById('btn-monthly').className = "py-2 px-1 rounded-lg text-center transition text-slate-400 hover:text-white";
+        
+        // Show selected tab & set active button
+        document.getElementById('tab-' + timeframe).classList.remove('hidden');
+        document.getElementById('btn-' + timeframe).className = "py-2 px-1 rounded-lg text-center transition bg-emerald-500 text-white";
+    }
+</script>
 {% endblock %}

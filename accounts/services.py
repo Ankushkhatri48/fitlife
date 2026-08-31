@@ -58,17 +58,8 @@ def calculate_daily_targets(profile):
     else: # Other/Prefer not to say: average of male and female formula
         bmr = Decimal('10') * weight_kg + Decimal('6.25') * height_cm - Decimal('5') * Decimal(str(age)) - Decimal('78')
         
-    # 3. Calculate TDEE based on activity level
-    activity_multipliers = {
-        'Sedentary': Decimal('1.2'),
-        'Lightly active': Decimal('1.375'),
-        'Moderately active': Decimal('1.55'),
-        'Very active': Decimal('1.725'),
-        'Extremely active': Decimal('1.9')
-    }
-    
-    multiplier = activity_multipliers.get(profile.activity_level, Decimal('1.2'))
-    tdee = bmr * multiplier
+    # 3. Calculate target (multiplier = 1.0 as activity level is removed)
+    tdee = bmr
     
     # 4. Adjust calories based on goal
     if profile.goal == 'Lose weight':
