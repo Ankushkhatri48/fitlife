@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if is_edit %}Edit Weight Log{% else %}Log Weight{% endif %} - FitLife{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 md:p-10 rounded-3xl border border-slate-200 shadow-sm my-12">
+    <div class="border-b border-slate-100 pb-4 mb-6">
+        <h2 class="text-2xl font-black text-slate-900">{% if is_edit %}Edit Weight Log{% else %}Log Weight{% endif %}</h2>
+        <p class="text-slate-500 text-sm mt-1">Record your body weight measurement.</p>
+    </div>
+
+    <form method="POST" class="space-y-5">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm">
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Date -->
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Date of measurement</label>
+            {{ form.date }}
+            {% if form.date.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.date.errors.0 }}</p>{% endif %}
+        </div>
+
+        <!-- Weight -->
+        <div>
+            <label class="block text-sm font-semibold text-slate-700 mb-1">Weight Value</label>
+            <div class="flex space-x-2">
+                <div class="flex-1">{{ form.weight }}</div>
+                <div class="w-24">{{ form.unit }}</div>
+            </div>
+            {% if form.weight.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.weight.errors.0 }}</p>{% endif %}
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex space-x-3 pt-4 border-t border-slate-100">
+            <a href="{% url 'weight:history' %}" class="flex-1 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3.5 rounded-xl border border-slate-200 transition text-center text-sm">
+                Cancel
+            </a>
+            <button type="submit" class="flex-1 bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-brand-100 text-center text-sm">
+                Save Log
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

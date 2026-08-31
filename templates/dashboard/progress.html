@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+
+{% block title %}Progress Analytics - FitLife{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header with timeframe filter -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold tracking-tight">Progress & Analytics</h1>
+            <p class="text-slate-500 font-medium">Review your caloric trends and measurement changes over time.</p>
+        </div>
+        
+        <!-- Filters -->
+        <div class="inline-flex rounded-xl border border-slate-200 p-1 bg-white shadow-sm">
+            <a href="?days=7" class="px-4 py-2 text-sm font-semibold rounded-lg transition {% if days_limit == 7 %}bg-brand-500 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                7 Days
+            </a>
+            <a href="?days=30" class="px-4 py-2 text-sm font-semibold rounded-lg transition {% if days_limit == 30 %}bg-brand-500 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                30 Days
+            </a>
+            <a href="?days=90" class="px-4 py-2 text-sm font-semibold rounded-lg transition {% if days_limit == 90 %}bg-brand-500 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-50{% endif %}">
+                90 Days
+            </a>
+        </div>
+    </div>
+
+    <!-- Weight & Streak Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Starting Weight</span>
+            <p class="text-2xl font-black text-slate-800 mt-1">{% if start_weight %}{{ start_weight }} {{ weight_unit }}{% else %}--{% endif %}</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Current Weight</span>
+            <p class="text-2xl font-black text-slate-800 mt-1">{% if current_weight %}{{ current_weight }} {{ weight_unit }}{% else %}--{% endif %}</p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Weight Change</span>
+            <p class="text-2xl font-black mt-1 {% if weight_change < 0 %}text-emerald-600{% elif weight_change > 0 %}text-orange-600{% else %}text-slate-700{% endif %}">
+                {% if weight_change > 0 %}+{% endif %}{{ weight_change }} {{ weight_unit }}
+            </p>
+        </div>
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Days Tracked</span>
+            <p class="text-2xl font-black text-slate-800 mt-1">{{ streak_stats.days_tracked }} Days</p>
+        </div>
+    </div>
+
+    <!-- Streak Analytics -->
+    <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm">
+        <h3 class="text-lg font-bold text-slate-800 mb-6">Streak History</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+            <div class="p-4 bg-orange-50 rounded-2xl">
+                <span class="text-xs font-bold text-orange-600 uppercase tracking-wider block">Current Streak</span>
+                <p class="text-3xl font-black text-orange-700 mt-2">🔥 {{ streak_stats.current_streak }}</p>
+            </div>
+            <div class="p-4 bg-emerald-50 rounded-2xl">
+                <span class="text-xs font-bold text-emerald-600 uppercase tracking-wider block">Longest Streak</span>
+                <p class="text-3xl font-black text-emerald-700 mt-2">🏆 {{ streak_stats.longest_streak }}</p>
+            </div>
+            <div class="p-4 bg-slate-50 rounded-2xl">
+                <span class="text-xs font-bold text-slate-600 uppercase tracking-wider block">Total Days Logged</span>
+                <p class="text-3xl font-black text-slate-700 mt-2">📅 {{ streak_stats.days_tracked }}</p>
+            </div>
+            <div class="p-4 bg-rose-50 rounded-2xl">
+                <span class="text-xs font-bold text-rose-600 uppercase tracking-wider block">Missed Days</span>
+                <p class="text-3xl font-black text-rose-700 mt-2">❌ {{ streak_stats.missed_days }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Calorie Trend Chart -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Calorie Trend vs Target</h3>
+            <div class="relative h-80">
+                <canvas id="calorieChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Protein Trend Chart -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Protein Intake vs Target</h3>
+            <div class="relative h-80">
+                <canvas id="proteinChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Weight Trend Chart -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Weight Trend</h3>
+            <div class="relative h-80">
+                <canvas id="weightChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Macro Distribution (Averages) -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Average Macro Distribution</h3>
+            <div class="relative h-80 flex items-center justify-center">
+                <canvas id="macroChart" class="max-h-72"></canvas>
+            </div>
+        </div>
+
+        <!-- Caffeine Trend Chart -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Caffeine Consumption</h3>
+            <div class="relative h-80">
+                <canvas id="caffeineChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Sugar Trend Chart -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Sugar Consumption</h3>
+            <div class="relative h-80">
+                <canvas id="sugarChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Deserialize variables from context
+    const labels = {{ date_labels|safe }};
+    const calorieData = {{ calorie_data|safe }};
+    const proteinData = {{ protein_data|safe }};
+    const carbsData = {{ carbs_data|safe }};
+    const fatData = {{ fat_data|safe }};
+    const sugarData = {{ sugar_data|safe }};
+    const caffeineData = {{ caffeine_data|safe }};
+    const weightData = {{ weight_data|safe }};
+    
+    const calorieTarget = {{ calorie_target }};
+    const proteinTarget = {{ protein_target }};
+    
+    // 1. Calorie Chart
+    new Chart(document.getElementById('calorieChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Consumed',
+                    data: calorieData,
+                    backgroundColor: '#10b981',
+                    borderRadius: 6,
+                },
+                {
+                    label: 'Target',
+                    data: Array(labels.length).fill(calorieTarget),
+                    type: 'line',
+                    borderColor: '#ef4444',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    pointStyle: 'none',
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Protein Chart
+    new Chart(document.getElementById('proteinChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Consumed (g)',
+                    data: proteinData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                },
+                {
+                    label: 'Target (g)',
+                    data: Array(labels.length).fill(proteinTarget),
+                    borderColor: '#ef4444',
+                    borderWidth: 1.5,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 3. Weight Chart
+    new Chart(document.getElementById('weightChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Weight ({{ weight_unit }})',
+                data: weightData,
+                borderColor: '#14b8a6',
+                backgroundColor: 'rgba(20, 184, 166, 0.1)',
+                tension: 0.2,
+                spanGaps: true,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 4. Macro Doughnut Chart
+    const totalProtein = proteinData.reduce((a, b) => a + b, 0);
+    const totalCarbs = carbsData.reduce((a, b) => a + b, 0);
+    const totalFat = fatData.reduce((a, b) => a + b, 0);
+    const macroSum = totalProtein + totalCarbs + totalFat;
+    
+    new Chart(document.getElementById('macroChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Protein', 'Carbs', 'Fats'],
+            datasets: [{
+                data: macroSum > 0 ? [totalProtein, totalCarbs, totalFat] : [30, 45, 25],
+                backgroundColor: ['#3b82f6', '#f59e0b', '#f43f5e']
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // 5. Caffeine Chart
+    new Chart(document.getElementById('caffeineChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Caffeine (mg)',
+                data: caffeineData,
+                backgroundColor: '#a855f7',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 6. Sugar Chart
+    new Chart(document.getElementById('sugarChart'), {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Sugar (g)',
+                data: sugarData,
+                backgroundColor: '#ec4899',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+{% endblock %}

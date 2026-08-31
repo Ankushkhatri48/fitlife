@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FitLife - Nutrition & Fitness Tracking{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            900: '#064e3b',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+    <!-- Top Banner Notification (Messages) -->
+    {% if messages %}
+    <div class="fixed top-4 right-4 z-50 max-w-md w-full space-y-2 pointer-events-none">
+        {% for message in messages %}
+        <div class="p-4 rounded-xl shadow-lg border flex items-center justify-between pointer-events-auto transition-all duration-300 transform translate-y-0
+            {% if message.tags == 'success' %}bg-emerald-50 border-emerald-200 text-emerald-800
+            {% elif message.tags == 'warning' %}bg-amber-50 border-amber-200 text-amber-800
+            {% elif message.tags == 'error' %}bg-rose-50 border-rose-200 text-rose-800
+            {% else %}bg-blue-50 border-blue-200 text-blue-800{% endif %}"
+            id="message-{{ forloop.counter }}">
+            <div class="flex items-center space-x-3">
+                {% if message.tags == 'success' %}
+                <svg class="w-5 h-5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                {% elif message.tags == 'error' %}
+                <svg class="w-5 h-5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                {% else %}
+                <svg class="w-5 h-5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                {% endif %}
+                <span class="text-sm font-medium">{{ message }}</span>
+            </div>
+            <button onclick="document.getElementById('message-{{ forloop.counter }}').remove()" class="text-slate-400 hover:text-slate-600 focus:outline-none ml-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <script>
+            setTimeout(() => {
+                const el = document.getElementById('message-{{ forloop.counter }}');
+                if(el) {
+                    el.classList.add('opacity-0', 'scale-95');
+                    setTimeout(() => el.remove(), 300);
+                }
+            }, 5000);
+        </script>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if user.is_authenticated %}
+    <!-- Dashboard Layout (Sidebar + Main Content) -->
+    <div class="flex flex-1 flex-col md:flex-row min-h-screen">
+        <!-- Sidebar Navigation -->
+        <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex-shrink-0 border-r border-slate-800 flex flex-col justify-between hidden md:flex">
+            <div>
+                <!-- Brand Header -->
+                <div class="p-6 border-b border-slate-800 flex items-center space-x-3">
+                    <div class="bg-brand-500 text-white p-2 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <span class="text-xl font-bold text-white tracking-tight">FitLife</span>
+                </div>
+                
+                <!-- Main Nav Links -->
+                <nav class="p-4 space-y-1">
+                    <a href="{% url 'dashboard:index' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'index' and request.resolver_match.app_name == 'dashboard' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z"></path></svg>
+                        <span class="font-medium text-sm">Dashboard</span>
+                    </a>
+                    
+                    <a href="{% url 'nutrition:log_entry' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'log_entry' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="font-medium text-sm">Daily Log</span>
+                    </a>
+
+                    <a href="{% url 'nutrition:calendar' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'calendar' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <span class="font-medium text-sm">Calendar</span>
+                    </a>
+
+                    <a href="{% url 'nutrition:history' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'history' and request.resolver_match.app_name == 'nutrition' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="font-medium text-sm">Log History</span>
+                    </a>
+                    
+                    <a href="{% url 'weight:history' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.app_name == 'weight' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+                        <span class="font-medium text-sm">Weight Tracker</span>
+                    </a>
+
+                    <a href="{% url 'dashboard:progress' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'progress' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2"></path></svg>
+                        <span class="font-medium text-sm">Progress Analytics</span>
+                    </a>
+
+                    <div class="pt-4 pb-2 border-t border-slate-800">
+                        <span class="px-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Calculators</span>
+                    </div>
+
+                    <a href="{% url 'nutrition:calorie_calculator' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'calorie_calculator' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                        <span class="font-medium text-sm">Calorie Calculator</span>
+                    </a>
+
+                    <a href="{% url 'nutrition:caffeine_calculator' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'caffeine_calculator' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path></svg>
+                        <span class="font-medium text-sm">Caffeine Log</span>
+                    </a>
+
+                    <a href="{% url 'nutrition:sugar_calculator' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white {% if request.resolver_match.url_name == 'sugar_calculator' %}bg-brand-600 text-white{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                        <span class="font-medium text-sm">Sugar Log</span>
+                    </a>
+                </nav>
+            </div>
+            
+            <!-- User Section / Settings & Logout -->
+            <div class="p-4 border-t border-slate-800 space-y-2">
+                <a href="{% url 'accounts:settings' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-slate-800 hover:text-white text-slate-400 {% if request.resolver_match.url_name == 'settings' %}text-white bg-slate-800{% endif %}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    <span class="text-sm font-medium">Settings</span>
+                </a>
+                <a href="{% url 'accounts:logout' %}" class="flex items-center space-x-3 px-4 py-3 rounded-xl transition hover:bg-rose-950 hover:text-rose-200 text-rose-400">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="text-sm font-medium">Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Mobile Top Navbar -->
+        <header class="bg-slate-900 text-slate-300 md:hidden border-b border-slate-800">
+            <div class="px-4 py-3 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-500 text-white p-1.5 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <span class="text-lg font-bold text-white">FitLife</span>
+                </div>
+                
+                <!-- Toggle Menu Button -->
+                <button id="mobile-menu-toggle" class="p-2 text-slate-400 hover:text-white focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Mobile Menu Dropdown -->
+            <div id="mobile-menu" class="hidden border-t border-slate-800 px-4 py-2 space-y-1">
+                <a href="{% url 'dashboard:index' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Dashboard</a>
+                <a href="{% url 'nutrition:log_entry' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Daily Log</a>
+                <a href="{% url 'nutrition:calendar' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Calendar</a>
+                <a href="{% url 'nutrition:history' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Log History</a>
+                <a href="{% url 'weight:history' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Weight Tracker</a>
+                <a href="{% url 'dashboard:progress' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Progress Analytics</a>
+                <a href="{% url 'nutrition:calorie_calculator' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Calorie Calculator</a>
+                <a href="{% url 'nutrition:caffeine_calculator' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Caffeine Log</a>
+                <a href="{% url 'nutrition:sugar_calculator' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Sugar Log</a>
+                <a href="{% url 'accounts:settings' %}" class="block px-3 py-2 rounded-lg hover:bg-slate-800">Settings</a>
+                <a href="{% url 'accounts:logout' %}" class="block px-3 py-2 rounded-lg text-rose-400 hover:bg-rose-950">Logout</a>
+            </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 bg-slate-50 p-6 md:p-10 flex flex-col justify-between overflow-x-hidden">
+            <div class="max-w-6xl mx-auto w-full">
+                {% block content %}{% endblock %}
+            </div>
+            
+            <footer class="mt-16 text-center text-xs text-slate-400 border-t border-slate-200 pt-6">
+                &copy; 2026 FitLife Nutrition Tracker. All rights reserved. Keep striving for your health and fitness goals safely.
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        const btn = document.getElementById('mobile-menu-toggle');
+        const menu = document.getElementById('mobile-menu');
+        if(btn && menu) {
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+            });
+        }
+    </script>
+
+    {% else %}
+    <!-- Public Site Navbar -->
+    <header class="bg-white border-b border-slate-200 py-4 px-6 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-500 text-white p-2 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <span class="text-xl font-bold tracking-tight">FitLife</span>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <a href="{% url 'accounts:login' %}" class="text-sm font-semibold text-slate-600 hover:text-slate-900 transition">Sign In</a>
+                <a href="{% url 'accounts:register' %}" class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-brand-100">Get Started</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1">
+        {% block public_content %}{% endblock %}
+    </main>
+
+    <footer class="bg-slate-950 text-slate-400 py-12 px-6">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between border-t border-slate-800 pt-8">
+            <div class="flex items-center space-x-3 mb-4 md:mb-0">
+                <div class="bg-brand-500 text-white p-1.5 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <span class="text-white font-bold">FitLife</span>
+            </div>
+            <p class="text-xs text-slate-500">&copy; 2026 FitLife Nutrition Tracker. Built to empower standard healthy habits. Estimate estimates only. Always consult a healthcare provider.</p>
+        </div>
+    </footer>
+    {% endif %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

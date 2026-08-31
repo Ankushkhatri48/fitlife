@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Delete Log Confirmation - FitLife{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-3xl border border-slate-200 shadow-xl shadow-slate-100 my-12 text-center">
+    <div class="bg-rose-50 text-rose-600 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-6">
+        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+    </div>
+    
+    <h2 class="text-2xl font-black text-slate-900">Delete Nutrition Log?</h2>
+    <p class="text-sm text-slate-500 mt-2">
+        Are you sure you want to permanently delete your nutrition record for <strong class="text-slate-800">{{ entry.date|date:"l, d F Y" }}</strong>?
+    </p>
+    
+    <div class="p-4 bg-slate-50 border border-slate-100 rounded-2xl my-6 text-left space-y-2">
+        <div class="flex justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+            <span>Logged Calories</span>
+            <span>Protein</span>
+        </div>
+        <div class="flex justify-between font-bold text-slate-800">
+            <span>{{ entry.calories }} kcal</span>
+            <span>{{ entry.protein }}g</span>
+        </div>
+    </div>
+    
+    <form method="POST" class="flex space-x-3">
+        {% csrf_token %}
+        <a href="{% url 'nutrition:history' %}" class="flex-1 bg-white hover:bg-slate-50 text-slate-700 font-semibold py-3.5 rounded-xl border border-slate-200 transition text-sm">
+            Cancel
+        </a>
+        <button type="submit" class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-3.5 rounded-xl transition shadow-md shadow-rose-100 text-sm">
+            Yes, Delete
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Setup Profile - FitLife{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto bg-white p-8 md:p-12 rounded-3xl border border-slate-200 shadow-xl shadow-slate-100 my-8">
+    <div class="text-center mb-10">
+        <h2 class="text-3xl font-bold text-slate-900">Setup Your Profile</h2>
+        <p class="text-slate-500 mt-2">Let's calculate your recommended daily calorie and macro targets.</p>
+    </div>
+
+    <form method="POST" class="space-y-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm">
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Profile Section -->
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">Personal Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Name</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Age</label>
+                    {{ form.age }}
+                    {% if form.age.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.age.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Gender</label>
+                    {{ form.gender }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Timezone</label>
+                    {{ form.timezone }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Weight and Height -->
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">Measurements</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Weight</label>
+                    <div class="flex space-x-2">
+                        <div class="flex-1">{{ form.weight }}</div>
+                        <div class="w-24">{{ form.weight_unit }}</div>
+                    </div>
+                    {% if form.weight.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.weight.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Height Unit</label>
+                    {{ form.height_unit }}
+                </div>
+            </div>
+
+            <!-- CM Height input -->
+            <div id="div_height_cm">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Height (cm)</label>
+                {{ form.height }}
+                {% if form.height.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.height.errors.0 }}</p>{% endif %}
+            </div>
+
+            <!-- Feet & Inches Height input -->
+            <div id="div_height_ft_in" class="hidden">
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Height (Feet / Inches)</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        {{ form.height_feet }}
+                        {% if form.height_feet.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.height_feet.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        {{ form.height_inches }}
+                        {% if form.height_inches.errors %}<p class="text-rose-500 text-xs mt-1">{{ form.height_inches.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Goals -->
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-4">
+            <h3 class="text-lg font-bold text-slate-800 border-b border-slate-200 pb-2">Fitness Goal</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">What is your goal?</label>
+                    {{ form.goal }}
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">Activity Level</label>
+                    {{ form.activity_level }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden inputs for overrides during onboarding (can be set later in settings) -->
+        <div class="hidden">
+            {{ form.daily_calorie_target_override }}
+            {{ form.protein_target_override }}
+            {{ form.carbs_target_override }}
+            {{ form.fat_target_override }}
+        </div>
+
+        <button type="submit" 
+                class="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-4 rounded-xl transition shadow-lg shadow-brand-500/10">
+            Calculate Target & Continue
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function toggleHeightInputs() {
+        const unit = document.getElementById('id_height_unit').value;
+        const cmDiv = document.getElementById('div_height_cm');
+        const ftInDiv = document.getElementById('div_height_ft_in');
+        
+        if (unit === 'ft_in') {
+            cmDiv.classList.add('hidden');
+            ftInDiv.classList.remove('hidden');
+        } else {
+            cmDiv.classList.remove('hidden');
+            ftInDiv.classList.add('hidden');
+        }
+    }
+    
+    // Run on load to set correct visibility
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleHeightInputs();
+        
+        // Detect browser timezone if possible and set initial value if empty
+        const tzField = document.querySelector('input[name="timezone"]');
+        if (tzField && !tzField.value) {
+            try {
+                const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                if (tz) {
+                    tzField.value = tz;
+                }
+            } catch(e) {}
+        }
+    });
+</script>
+{% endblock %}

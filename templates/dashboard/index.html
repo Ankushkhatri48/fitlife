@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - FitLife{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <h1 class="text-3xl font-extrabold tracking-tight">Today's Nutrition</h1>
+            <p class="text-slate-500 font-medium mt-1">{{ today|date:"l, d F Y" }}</p>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <a href="{% url 'nutrition:log_entry' %}" class="bg-brand-500 hover:bg-brand-600 text-white font-bold px-5 py-3 rounded-xl transition flex items-center space-x-2 shadow-lg shadow-brand-500/10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>Log Nutrition</span>
+            </a>
+            <a href="{% url 'weight:log_weight' %}" class="bg-white hover:bg-slate-50 text-slate-700 font-bold px-5 py-3 rounded-xl border border-slate-200 transition shadow-sm">
+                <span>Log Weight</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Banner / Target status & fat equivalent estimation -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Goal Card -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Goal</span>
+                <p class="text-lg font-bold text-slate-800">{{ goal }}</p>
+            </div>
+        </div>
+
+        <!-- Weight Card -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="bg-teal-50 text-teal-600 p-3 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Weight</span>
+                <p class="text-lg font-bold text-slate-800">
+                    {% if current_weight %}{{ current_weight }} {{ weight_unit }}{% else %}Not Logged{% endif %}
+                </p>
+            </div>
+        </div>
+
+        <!-- Streak Card -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center space-x-4">
+            <div class="bg-orange-50 text-orange-600 p-3 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"></path></svg>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Tracking Streak</span>
+                <p class="text-lg font-bold text-slate-800">🔥 {{ streak }} Day{{ streak|pluralize }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calories & Protein (Primary Cards) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Calorie Progress Card -->
+        <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Calories</h3>
+                    <p class="text-sm text-slate-400">Total energy consumed today</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-2xl font-black text-slate-900">{{ consumed.calories }}</span>
+                    <span class="text-slate-400 font-bold">/ {{ calorie_target }} kcal</span>
+                </div>
+            </div>
+
+            <!-- Custom Progress Bar -->
+            {% widthratio consumed.calories calorie_target 100 as calorie_percent %}
+            <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                <div class="bg-gradient-to-r from-emerald-400 to-emerald-600 h-full rounded-full transition-all duration-500"
+                     style="width: {% if calorie_percent|add:0 > 100 %}100%{% else %}{{ calorie_percent }}%{% endif %};"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-sm pt-2">
+                <span class="font-semibold {{ status }} text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full text-xs">
+                    {{ status_label }}
+                </span>
+                <span class="text-slate-500 font-medium">
+                    Remaining: <strong class="text-slate-900">{{ remaining_calories }} kcal</strong>
+                </span>
+            </div>
+        </div>
+
+        <!-- Protein Progress Card -->
+        <div class="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-800">Protein</h3>
+                    <p class="text-sm text-slate-400">Essential for muscle and tissue repair</p>
+                </div>
+                <div class="text-right">
+                    <span class="text-2xl font-black text-slate-900">{{ consumed.protein }}g</span>
+                    <span class="text-slate-400 font-bold">/ {{ protein_target }}g</span>
+                </div>
+            </div>
+
+            {% widthratio consumed.protein protein_target 100 as protein_percent %}
+            <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                <div class="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-500"
+                     style="width: {% if protein_percent|add:0 > 100 %}100%{% else %}{{ protein_percent }}%{% endif %};"></div>
+            </div>
+
+            <div class="flex justify-between items-center text-sm pt-2">
+                <span class="text-xs font-semibold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                    Completed: {{ protein_percent }}%
+                </span>
+                <span class="text-slate-500 font-medium">
+                    Remaining: <strong class="text-slate-900">{% if consumed.protein < protein_target %}{{ protein_target|filesizeformat|add:0|default_if_none:0 }}{{ protein_target|add:-consumed.protein }}g{% else %}Goal Met!{% endif %}</strong>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Secondary Metrics (Carbs, Fat, Caffeine, Sugar) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Carbs -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-semibold text-slate-500">Carbohydrates</span>
+                <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md font-bold">Target: {{ carbs_target }}g</span>
+            </div>
+            <div class="flex items-baseline space-x-1">
+                <span class="text-2xl font-bold">{{ consumed.carbs }}</span>
+                <span class="text-slate-400 text-sm font-bold">g</span>
+            </div>
+        </div>
+
+        <!-- Fat -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-semibold text-slate-500">Fats</span>
+                <span class="text-xs bg-rose-50 text-rose-700 px-2 py-0.5 rounded-md font-bold">Target: {{ fat_target }}g</span>
+            </div>
+            <div class="flex items-baseline space-x-1">
+                <span class="text-2xl font-bold">{{ consumed.fat }}</span>
+                <span class="text-slate-400 text-sm font-bold">g</span>
+            </div>
+        </div>
+
+        <!-- Caffeine -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-semibold text-slate-500">Caffeine</span>
+                <a href="{% url 'nutrition:caffeine_calculator' %}" class="text-xs text-brand-600 hover:underline font-bold">+ Log</a>
+            </div>
+            <div class="flex items-baseline space-x-1">
+                <span class="text-2xl font-bold">{{ consumed.caffeine }}</span>
+                <span class="text-slate-400 text-sm font-bold">mg</span>
+            </div>
+        </div>
+
+        <!-- Sugar -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-semibold text-slate-500">Sugar</span>
+                <a href="{% url 'nutrition:sugar_calculator' %}" class="text-xs text-brand-600 hover:underline font-bold">+ Log</a>
+            </div>
+            <div class="flex items-baseline space-x-1">
+                <span class="text-2xl font-bold">{{ consumed.sugar }}</span>
+                <span class="text-slate-400 text-sm font-bold">g</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calculations (Fat equivalent & notes) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Fat estimation -->
+        <div class="lg:col-span-1 bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8 rounded-3xl border border-slate-800 space-y-6 shadow-xl shadow-slate-200">
+            <div>
+                <h3 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>Estimated Fat Equivalent</span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">Based on daily caloric balance</p>
+            </div>
+
+            <div class="py-4 border-t border-b border-slate-700">
+                {% if fat_eq < 0 %}
+                <p class="text-3xl font-extrabold text-emerald-400">≈ {{ abs_fat_eq }} kg</p>
+                <p class="text-xs text-slate-300 mt-2 font-medium">Estimated equivalent fat loss from calorie deficit today.</p>
+                {% elif fat_eq > 0 %}
+                <p class="text-3xl font-extrabold text-orange-400">≈ {{ fat_eq }} kg</p>
+                <p class="text-xs text-slate-300 mt-2 font-medium">Estimated equivalent fat surplus from calorie surplus today.</p>
+                {% else %}
+                <p class="text-3xl font-extrabold text-slate-300">0.0 kg</p>
+                <p class="text-xs text-slate-300 mt-2 font-medium">You are exactly on par with your calorie targets.</p>
+                {% endif %}
+            </div>
+
+            <div class="text-[10px] text-slate-500 leading-normal">
+                💡 Note: 1 kg body fat is approximately 7,700 kcal. This is an estimate of energy balance and does not predict actual scale weight changes, which fluctuate due to water weight, glycogen storage, sodium, and metabolic activity.
+            </div>
+        </div>
+
+        <!-- Food / Meal Notes -->
+        <div class="lg:col-span-2 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800">What I Ate Today</h3>
+                    <p class="text-sm text-slate-400">Review log notes and food details</p>
+                </div>
+                <a href="{% url 'nutrition:log_entry' %}" class="text-sm text-brand-600 hover:underline font-semibold">Edit Logs</a>
+            </div>
+
+            <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100 min-h-[140px] flex flex-col justify-between">
+                {% if entry and entry.notes %}
+                <p class="text-sm text-slate-600 whitespace-pre-line font-medium">{{ entry.notes }}</p>
+                {% else %}
+                <div class="text-center py-6">
+                    <p class="text-sm text-slate-400 font-medium">No meal notes entered for today.</p>
+                    <a href="{% url 'nutrition:log_entry' %}" class="mt-3 inline-flex items-center text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-3 py-1.5 rounded-lg transition">
+                        Add Meal Notes
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
